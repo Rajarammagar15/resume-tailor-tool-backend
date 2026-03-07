@@ -10,5 +10,6 @@ public class UserExperience {
     private String location;
     private String duration;
 
-    private String description; // raw paragraph
+    private String description;
+    private ExperienceType type;
 }

@@ -48,6 +48,8 @@ public class ResumeBuilderService {
             e.setCompany(exp.getCompany());
             e.setLocation(exp.getLocation());
             e.setDuration(exp.getDuration());
+            e.setType(exp.getType());
+
             if (aiExp != null) {
                 e.setBullets(aiExp.getBullets());
             }
@@ -59,15 +61,26 @@ public class ResumeBuilderService {
     private List<Project> mapProjects(List<Project> projects,
                                       AiResumeResponse ai) {
 
-        return projects.stream().map(p -> {
+        System.out.println("User Projects: " + projects);
+        System.out.println("AI Projects: " + ai.getProjects());
 
-            ai.getProjects().stream()
-                    .filter(a -> a.getName().equalsIgnoreCase(p.getName()))
-                    .findFirst()
-                    .ifPresent(a -> p.setBullets(a.getBullets()));
+        if (projects == null || projects.isEmpty()) {
+            return List.of();
+        }
 
-            return p;
+        if (ai.getProjects() == null || ai.getProjects().isEmpty()) {
+            return projects;
+        }
 
-        }).toList();
+        for (int i = 0; i < projects.size(); i++) {
+
+            Project project = projects.get(i);
+
+            if (i < ai.getProjects().size()) {
+                project.setBullets(ai.getProjects().get(i).getBullets());
+            }
+        }
+
+        return projects;
     }
 }

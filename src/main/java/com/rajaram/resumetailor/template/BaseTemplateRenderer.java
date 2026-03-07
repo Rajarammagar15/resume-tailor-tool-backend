@@ -5,6 +5,7 @@ import com.lowagie.text.pdf.*;
 import com.lowagie.text.pdf.draw.LineSeparator;
 import com.rajaram.resumetailor.model.*;
 import com.rajaram.resumetailor.model.Header;
+import com.rajaram.resumetailor.model.builder.ExperienceType;
 
 import java.util.Arrays;
 import java.util.stream.Collectors;
@@ -19,6 +20,113 @@ public abstract class BaseTemplateRenderer implements TemplateRenderer {
     protected LayoutConfig layout;
 
     protected abstract void configureFonts();
+
+    @Override
+    public final void render(Document document, StructuredResume resume) throws Exception {
+
+        configureFonts();
+
+        addHeader(document, resume.getHeader());
+        addTopDecoration(document);
+
+        java.util.List<ResumeSection> order = determineSectionOrder(resume);
+
+        for (ResumeSection section : order) {
+
+            switch (section) {
+
+                case SUMMARY -> addSummarySection(document, resume);
+
+                case SKILLS -> addSkillsSection(document, resume);
+
+                case EXPERIENCE -> addExperienceSections(document, resume);
+
+                case INTERNSHIPS -> addInternshipSection(document, resume);
+
+                case PROJECTS -> addProjectsSection(document, resume);
+
+                case EDUCATION -> addEducationSection(document, resume);
+
+                case CERTIFICATIONS -> addCertificationsSection(document, resume);
+            }
+        }
+    }
+
+    protected void addTopDecoration(Document document) throws Exception {
+        // default no decoration
+    }
+
+    protected void addSummarySection(Document document, StructuredResume resume) throws Exception {
+
+        if (resume.getSummary() == null || resume.getSummary().isBlank()) return;
+
+        addSectionTitle(document, "Professional Summary");
+        addParagraph(document, resume.getSummary());
+    }
+
+    protected void addSkillsSection(Document document, StructuredResume resume) throws Exception {
+
+        if (resume.getSkills() == null) return;
+
+        addSectionTitle(document, "Skills");
+        addSkills(document, resume.getSkills());
+    }
+
+    protected void addEducationSection(Document document, StructuredResume resume) throws Exception {
+
+        if (resume.getEducation() == null || resume.getEducation().isEmpty()) return;
+
+        addSectionTitle(document, "Education");
+        addEducation(document, resume.getEducation());
+    }
+
+    protected void addExperienceSections(Document document,
+                                         StructuredResume resume) throws Exception {
+
+        if (resume.getExperience() == null) return;
+
+        java.util.List<Experience> fullTime = resume.getExperience()
+                .stream()
+                .filter(e -> e.getType() == ExperienceType.FULL_TIME)
+                .toList();
+
+        if (fullTime.isEmpty()) return;
+
+        addSectionTitle(document, "Experience");
+        addExperience(document, fullTime);
+    }
+
+    protected void addInternshipSection(Document document,
+                                        StructuredResume resume) throws Exception {
+
+        if (resume.getExperience() == null) return;
+
+        java.util.List<Experience> internships = resume.getExperience()
+                .stream()
+                .filter(e -> e.getType() == ExperienceType.INTERNSHIP)
+                .toList();
+
+        if (internships.isEmpty()) return;
+
+        addSectionTitle(document, "Internships");
+        addExperience(document, internships);
+    }
+
+    protected void addProjectsSection(Document document, StructuredResume resume) throws Exception {
+
+        if (resume.getProjects() == null || resume.getProjects().isEmpty()) return;
+
+        addSectionTitle(document, "Projects");
+        addProjects(document, resume.getProjects());
+    }
+
+    protected void addCertificationsSection(Document document, StructuredResume resume) throws Exception {
+
+        if (resume.getCertifications() == null || resume.getCertifications().isEmpty()) return;
+
+        addSectionTitle(document, "Certifications");
+        addCertifications(document, resume.getCertifications());
+    }
 
     protected void addDivider(Document document) throws Exception {
         LineSeparator separator = new LineSeparator();
@@ -204,6 +312,39 @@ public abstract class BaseTemplateRenderer implements TemplateRenderer {
         }
     }
 
+    protected void addProjects(Document document,
+                               java.util.List<Project> projects) throws Exception {
+
+        if (projects == null || projects.isEmpty()) return;
+
+        for (Project project : projects) {
+
+            if (project == null) continue;
+
+            Paragraph projectTitle = new Paragraph(
+                    safe(project.getName()),
+                    boldFont
+            );
+            projectTitle.setSpacingBefore(4);
+            document.add(projectTitle);
+
+            if (project.getBullets() != null && !project.getBullets().isEmpty()) {
+
+                List list = new List(List.UNORDERED);
+                list.setIndentationLeft(layout.bulletIndent);
+                list.setListSymbol("• ");
+
+                for (String bullet : project.getBullets()) {
+                    if (bullet != null && !bullet.isBlank()) {
+                        list.add(new ListItem(bullet.trim(), normalFont));
+                    }
+                }
+
+                document.add(list);
+            }
+        }
+    }
+
     protected void addCertifications(Document document,
                                      java.util.List<String> certifications) throws Exception {
 
@@ -227,5 +368,33 @@ public abstract class BaseTemplateRenderer implements TemplateRenderer {
         return Arrays.stream(values)
                 .filter(v -> v != null && !v.isBlank())
                 .collect(Collectors.joining(" | "));
+    }
+
+    protected java.util.List<ResumeSection> determineSectionOrder(StructuredResume resume) {
+
+        boolean hasExperience = resume.getExperience() != null &&
+                resume.getExperience().stream()
+                        .anyMatch(e -> e.getType() == ExperienceType.FULL_TIME);
+
+        if (hasExperience) {
+            return java.util.List.of(
+                    ResumeSection.SUMMARY,
+                    ResumeSection.SKILLS,
+                    ResumeSection.EXPERIENCE,
+                    ResumeSection.PROJECTS,
+                    ResumeSection.EDUCATION,
+                    ResumeSection.CERTIFICATIONS
+            );
+        }
+
+        // Fresher layout
+        return java.util.List.of(
+                ResumeSection.SUMMARY,
+                ResumeSection.SKILLS,
+                ResumeSection.PROJECTS,
+                ResumeSection.INTERNSHIPS,
+                ResumeSection.EDUCATION,
+                ResumeSection.CERTIFICATIONS
+        );
     }
 }

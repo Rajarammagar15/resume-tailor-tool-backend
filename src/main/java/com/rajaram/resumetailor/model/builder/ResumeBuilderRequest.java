@@ -10,7 +10,7 @@ public class ResumeBuilderRequest {
 
     private Header header;
     private Skills skills;
-    private int yearsOfExperience;
+    private Double yearsOfExperience;
     private List<UserExperience> experience;
     private List<Project> projects;
     private List<Education> education;

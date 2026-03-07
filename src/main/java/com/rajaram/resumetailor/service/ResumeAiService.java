@@ -38,6 +38,8 @@ public class ResumeAiService {
             If Job Description (JD) is PROVIDED:
             Optimize wording and bullet points to better match the job description.
             Emphasize skills and technologies that overlap with the JD.
+            Do not remove strong technical achievements.
+            Rephrase them to match the job description while preserving technical depth.
             
             Do NOT add any technologies, frameworks, or experiences that are not mentioned in the user input.
             
@@ -48,13 +50,9 @@ public class ResumeAiService {
             Each bullet must follow this structure:
             
             Action Verb + System/Feature Built + Technology Used + Impact.
-            
             Use strong action verbs such as:
             Designed, Implemented, Optimized, Built, Developed, Architected.
-            
-            Avoid weak phrases:
-            "worked on", "responsible for", "involved in".
-            
+            Avoid weak phrases: "worked on", "responsible for", "involved in".
             Include measurable impact whenever possible such as:
             performance improvement, scalability improvement, latency reduction.
             
@@ -73,6 +71,34 @@ public class ResumeAiService {
             • Primary engineering strengths
             
             If a Job Description is provided, slightly tailor the summary toward that role.
+            
+            ------------------------
+            Experience vs Fresher Handling
+            ------------------------
+            If the user has professional experience:
+            Generate bullet points for each experience entry.
+            
+            If the user experience type is INTERNSHIP, treat it as professional work but slightly shorter and more concise.
+            Internships may contain 3–5 bullets instead of 7–8.
+            
+            If the user has NO experience:
+            Return an empty experiences array:
+            "experiences": []
+            
+            Instead, focus on strengthening the projects section.
+            
+            Projects should highlight:
+            • technologies used
+            • system design
+            • problem solved
+            • measurable or qualitative impact
+            
+            Projects should read like engineering achievements, not academic descriptions.
+            
+            The "projects" field must ALWAYS be present in the JSON.
+            If the user provided projects, return them.
+            If no projects exist return:
+            "projects": []
             
             ------------------------
             Output Rules
@@ -128,13 +154,14 @@ public class ResumeAiService {
                 .getMessage()
                 .getContent();
 
+        System.out.println("AI RAW RESPONSE:\n" + content);
+
         return mapper.readValue(content, AiResumeResponse.class);
     }
 
     private String buildPrompt(ResumeBuilderRequest request) {
 
         String jd = request.getJobDescription();
-
         if (jd == null || jd.isBlank()) {
             jd = "NONE";
         }
@@ -148,7 +175,7 @@ public class ResumeAiService {
                 %s
                 
                 Years of Experience:
-                %d
+                %f
                 
                 Experience Description:
                 %s

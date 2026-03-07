@@ -1,5 +1,6 @@
 package com.rajaram.resumetailor.model;
 
+import com.rajaram.resumetailor.model.builder.ExperienceType;
 import lombok.Data;
 import java.util.List;
 
@@ -12,4 +13,5 @@ public class Experience {
     private String duration;
 
     private List<String> bullets;
+    private ExperienceType type;
 }

@@ -7,9 +7,12 @@ spring:
       max-file-size: 10MB
       max-request-size: 15MB
 
-  config:
-    import: "optional:file:.env[.properties]"
+  profiles:
+    active: local
 
-openai:
-  api-key: ${OPENAI_API_KEY}
-  model: gpt-4o
+#  config:
+#    import: "optional:file:.env[.properties]"
+
+#openai:
+#  api-key: ${OPENAI_API_KEY}
+#  model: gpt-4o
