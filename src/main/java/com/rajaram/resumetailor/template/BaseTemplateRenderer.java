@@ -1,7 +1,8 @@
 package com.rajaram.resumetailor.template;
 
 import com.lowagie.text.*;
-import com.lowagie.text.pdf.*;
+import com.lowagie.text.pdf.PdfPCell;
+import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.draw.LineSeparator;
 import com.rajaram.resumetailor.model.*;
 import com.rajaram.resumetailor.model.Header;
@@ -32,21 +33,13 @@ public abstract class BaseTemplateRenderer implements TemplateRenderer {
         java.util.List<ResumeSection> order = determineSectionOrder(resume);
 
         for (ResumeSection section : order) {
-
             switch (section) {
-
                 case SUMMARY -> addSummarySection(document, resume);
-
                 case SKILLS -> addSkillsSection(document, resume);
-
                 case EXPERIENCE -> addExperienceSections(document, resume);
-
                 case INTERNSHIPS -> addInternshipSection(document, resume);
-
                 case PROJECTS -> addProjectsSection(document, resume);
-
                 case EDUCATION -> addEducationSection(document, resume);
-
                 case CERTIFICATIONS -> addCertificationsSection(document, resume);
             }
         }
@@ -297,14 +290,40 @@ public abstract class BaseTemplateRenderer implements TemplateRenderer {
 
         for (Education edu : educationList) {
 
-            Paragraph degreeInst = new Paragraph(
-                    safeJoin(edu.getDegree(), edu.getInstitution()),
-                    boldFont
+            PdfPTable table = new PdfPTable(2);
+            table.setWidthPercentage(100);
+            table.setWidths(new float[]{70, 30});
+            table.setSpacingBefore(4f);
+            table.setSpacingAfter(layout.experienceSpacing);
+
+            Phrase leftPhrase = new Phrase();
+            leftPhrase.add(new Chunk(safeJoin(edu.getDegree(), edu.getInstitution()), boldFont));
+
+            PdfPCell left = new PdfPCell(leftPhrase);
+            left.setBorder(Rectangle.NO_BORDER);
+            left.setPadding(0);
+
+            Font dateFont = new Font(
+                    normalFont.getFamily(),
+                    normalFont.getSize() - 1,
+                    normalFont.getStyle(),
+                    layout.dateColor
             );
-            document.add(degreeInst);
+
+            PdfPCell right = new PdfPCell(
+                    new Phrase(safe(edu.getDuration()), dateFont)
+            );
+            right.setHorizontalAlignment(Element.ALIGN_RIGHT);
+            right.setBorder(Rectangle.NO_BORDER);
+            right.setPadding(0);
+
+            table.addCell(left);
+            table.addCell(right);
+
+            document.add(table);
 
             Paragraph meta = new Paragraph(
-                    safeJoin(edu.getLocation(), edu.getDuration(), edu.getGrade()),
+                    safeJoin(edu.getLocation(), "GPA: " + edu.getGrade()),
                     normalFont
             );
             meta.setSpacingAfter(4);

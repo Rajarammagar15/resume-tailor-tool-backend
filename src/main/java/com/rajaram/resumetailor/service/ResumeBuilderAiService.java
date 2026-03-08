@@ -8,13 +8,13 @@ import com.rajaram.resumetailor.model.builder.ResumeBuilderRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
-import tools.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class ResumeAiService {
+public class ResumeBuilderAiService {
 
     private final WebClient openAiWebClient;
     private final ObjectMapper mapper;
@@ -153,8 +153,6 @@ public class ResumeAiService {
                 .get(0)
                 .getMessage()
                 .getContent();
-
-        System.out.println("AI RAW RESPONSE:\n" + content);
 
         return mapper.readValue(content, AiResumeResponse.class);
     }

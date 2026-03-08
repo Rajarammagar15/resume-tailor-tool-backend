@@ -15,7 +15,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ResumeBuilderService {
 
-    private final ResumeAiService aiService;
+    private final ResumeBuilderAiService aiService;
 
     public StructuredResume buildResume(ResumeBuilderRequest request) throws Exception {
 
@@ -60,9 +60,6 @@ public class ResumeBuilderService {
 
     private List<Project> mapProjects(List<Project> projects,
                                       AiResumeResponse ai) {
-
-        System.out.println("User Projects: " + projects);
-        System.out.println("AI Projects: " + ai.getProjects());
 
         if (projects == null || projects.isEmpty()) {
             return List.of();

@@ -2,7 +2,7 @@ package com.rajaram.resumetailor.controller;
 
 import com.rajaram.resumetailor.mapper.ResumeResponseMapper;
 import com.rajaram.resumetailor.model.*;
-import com.rajaram.resumetailor.service.AIRewriteService;
+import com.rajaram.resumetailor.service.AnalyseAiService;
 import com.rajaram.resumetailor.service.AnalysisCacheService;
 import com.rajaram.resumetailor.service.PdfGenerationService;
 import com.rajaram.resumetailor.service.PdfParserService;
@@ -13,25 +13,29 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.Map;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
-public class ResumeController {
+public class ResumeAnalyserController {
 
     private final PdfParserService pdfParserService;
-    private final AIRewriteService aiRewriteService;
+    private final AnalyseAiService analyseAiService;
     private final PdfGenerationService pdfGenerationService;
     private final AnalysisCacheService cacheService;
     private final ResumeResponseMapper resumeResponseMapper;
 
     @PostMapping("/analyze")
-    public ResponseEntity<ResumeResponse> analyzeResume(@RequestParam("resumeFile") MultipartFile resumeFile, @RequestParam("jobDescription") String jobDescription) {
+    public ResponseEntity<ResumeResponse> analyzeResume(
+            @RequestPart("resumeFile") MultipartFile resumeFile,
+            @RequestPart("data") AnalyzeRequest request) {
 
         String resumeText = pdfParserService.extractText(resumeFile);
-
-        AnalyzeResponse response = aiRewriteService.rewriteResume(jobDescription, resumeText);
+        AnalyzeResponse response = analyseAiService.rewriteResume(
+                request.getJobDescription(),
+                resumeText,
+                request.getExtraSkills());
 
         String analysisId = cacheService.store(new CachedAnalysis(response.getStructuredResume(), response));
         return ResponseEntity.ok(resumeResponseMapper.mapResponse(analysisId, response));
