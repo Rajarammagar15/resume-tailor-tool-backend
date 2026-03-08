@@ -202,24 +202,35 @@ public abstract class BaseTemplateRenderer implements TemplateRenderer {
 
         if (items == null || items.isEmpty()) return;
 
-        Paragraph paragraph = new Paragraph();
-        paragraph.setSpacingAfter(layout.paragraphSpacing);
+        PdfPTable table = new PdfPTable(2);
+        table.setWidthPercentage(100);
 
-        paragraph.add(new Chunk(title + ": ", boldFont));
-        paragraph.add(new Chunk(String.join(" | ", items), normalFont));
+        table.setWidths(new float[]{17, 83});
 
-        document.add(paragraph);
+        table.setSpacingAfter(layout.skillSpacing);
+
+        PdfPCell left = new PdfPCell(new Phrase(title + ":", boldFont));
+        left.setBorder(Rectangle.NO_BORDER);
+        left.setPadding(0);
+
+        PdfPCell right = new PdfPCell(
+                new Phrase(String.join(" | ", items), normalFont)
+        );
+        right.setBorder(Rectangle.NO_BORDER);
+        right.setPadding(0);
+
+        table.addCell(left);
+        table.addCell(right);
+
+        document.add(table);
     }
 
     protected void addExperience(Document document,
                                  java.util.List<Experience> experiences) throws Exception {
 
         if (experiences == null) return;
-
         for (Experience exp : experiences) {
-
             addExperienceHeader(document, exp);
-
             if (exp.getBullets() != null) {
                 List list = new List(List.UNORDERED);
                 list.setIndentationLeft(layout.bulletIndent);
@@ -242,8 +253,8 @@ public abstract class BaseTemplateRenderer implements TemplateRenderer {
         PdfPTable table = new PdfPTable(2);
         table.setWidthPercentage(100);
         table.setWidths(new float[]{70, 30});
-        table.setSpacingBefore(4f);
-        table.setSpacingAfter(layout.experienceSpacing);
+        table.setSpacingBefore(3f);
+        table.setSpacingAfter(1f);
 
         Phrase leftPhrase = new Phrase();
         leftPhrase.add(new Chunk(safe(exp.getRole()), boldFont));
@@ -278,7 +289,7 @@ public abstract class BaseTemplateRenderer implements TemplateRenderer {
 
         if (exp.getLocation() != null && !exp.getLocation().isBlank()) {
             Paragraph location = new Paragraph(exp.getLocation(), normalFont);
-            location.setSpacingAfter(3);
+            location.setSpacingAfter(1);
             document.add(location);
         }
     }
@@ -293,11 +304,20 @@ public abstract class BaseTemplateRenderer implements TemplateRenderer {
             PdfPTable table = new PdfPTable(2);
             table.setWidthPercentage(100);
             table.setWidths(new float[]{70, 30});
-            table.setSpacingBefore(4f);
-            table.setSpacingAfter(layout.experienceSpacing);
+            table.setSpacingBefore(3f);
+            table.setSpacingAfter(1f);
 
             Phrase leftPhrase = new Phrase();
-            leftPhrase.add(new Chunk(safeJoin(edu.getDegree(), edu.getInstitution()), boldFont));
+            String degreeLine;
+            if (edu.getSpecialization() != null && !edu.getSpecialization().isBlank()) {
+                degreeLine = edu.getDegree() + " in " + edu.getSpecialization();
+            } else {
+                degreeLine = edu.getDegree();
+            }
+            leftPhrase.add(new Chunk(
+                    safeJoin(degreeLine, edu.getInstitution()),
+                    boldFont
+            ));
 
             PdfPCell left = new PdfPCell(leftPhrase);
             left.setBorder(Rectangle.NO_BORDER);
@@ -326,7 +346,7 @@ public abstract class BaseTemplateRenderer implements TemplateRenderer {
                     safeJoin(edu.getLocation(), "GPA: " + edu.getGrade()),
                     normalFont
             );
-            meta.setSpacingAfter(4);
+            meta.setSpacingAfter(8f);
             document.add(meta);
         }
     }
@@ -344,7 +364,8 @@ public abstract class BaseTemplateRenderer implements TemplateRenderer {
                     safe(project.getName()),
                     boldFont
             );
-            projectTitle.setSpacingBefore(4);
+            projectTitle.setSpacingBefore(-0.5f);
+            projectTitle.setSpacingAfter(1);
             document.add(projectTitle);
 
             if (project.getBullets() != null && !project.getBullets().isEmpty()) {

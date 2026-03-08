@@ -1,116 +1,127 @@
 package com.rajaram.resumetailor.service;
 
-import com.rajaram.resumetailor.model.OpenAiMessage;
-import com.rajaram.resumetailor.model.OpenAiRequest;
-import com.rajaram.resumetailor.model.OpenAiResponse;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rajaram.resumetailor.model.builder.AiResumeResponse;
 import com.rajaram.resumetailor.model.builder.ResumeBuilderRequest;
+import com.rajaram.resumetailor.util.OpenAiClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class ResumeBuilderAiService {
 
-    private final WebClient openAiWebClient;
+    private final OpenAiClient openAiClient;
     private final ObjectMapper mapper;
+    private static final String MODEL = "gpt-4o-mini";
 
     private static final String SYSTEM_PROMPT = """
             You are an expert software engineering resume writer.
-            
-            Your task is to generate resume content ONLY using the information provided by the user.
-            
-            Do NOT invent technologies, companies, responsibilities, or achievements that are not present in the user input.
-            
-            If some details are missing, rewrite the existing information professionally but do not fabricate new facts.
+            Your task is to generate professional resume content using ONLY the information provided by the user.
+            Never invent technologies, companies, responsibilities, or achievements that are not present in the user input. If information is incomplete, rewrite the provided details professionally but do not fabricate new facts.
             
             ------------------------
-            JD Handling Rules
+            Job Description Handling
             ------------------------
             
-            If Job Description (JD) is EMPTY or NULL:
-            Generate a strong generic resume based only on the user's input.
+            If Job Description (JD) is NULL or empty:
+            Generate a strong generic resume using only the user's information.
             
-            If Job Description (JD) is PROVIDED:
-            Optimize wording and bullet points to better match the job description.
-            Emphasize skills and technologies that overlap with the JD.
-            Do not remove strong technical achievements.
-            Rephrase them to match the job description while preserving technical depth.
+            If Job Description (JD) is provided:
+            Optimize wording to better align with the job description.
+            Emphasize overlapping skills and technologies.
+            Rephrase achievements to better match the JD while preserving technical accuracy.
             
-            Do NOT add any technologies, frameworks, or experiences that are not mentioned in the user input.
+            Do not introduce technologies or experiences not mentioned in the user input.
             
             ------------------------
             Bullet Writing Rules
             ------------------------
             
-            Each bullet must follow this structure:
+            Bullets must follow this structure:
             
-            Action Verb + System/Feature Built + Technology Used + Impact.
+            Action Verb + Feature/System Built + Technology Used + Impact
+            
             Use strong action verbs such as:
-            Designed, Implemented, Optimized, Built, Developed, Architected.
-            Avoid weak phrases: "worked on", "responsible for", "involved in".
-            Include measurable impact whenever possible such as:
-            performance improvement, scalability improvement, latency reduction.
+            Designed, Implemented, Built, Developed, Optimized, Architected.
             
-            If exact metrics are not available, describe impact qualitatively without inventing numbers.
+            Avoid weak phrases like:
+            worked on, responsible for, involved in.
             
-            Each experience must contain minimum 7 to 8 bullet points.
-            Each project must contain maximum 3 bullet points.
+            Impact can include:
+            • performance improvement
+            • scalability improvement
+            • reliability improvement
+            • latency reduction
+            • system efficiency
+            
+            If exact metrics are unavailable, describe impact qualitatively without inventing numbers.
+            
+            Bullet count rules:
+            
+            Professional Experience:
+            7–8 bullets per role
+            
+            Internship Experience:
+            3–5 bullets per role
+            
+            Projects:
+            Maximum 3 bullets
             
             ------------------------
             Summary Rules
             ------------------------
-            Generate a concise professional summary of 3–4 lines that highlights:
             
-            • Years of experience
-            • Core technologies
-            • Primary engineering strengths
+            Generate a concise professional summary (3–4 lines) highlighting:
             
-            If a Job Description is provided, slightly tailor the summary toward that role.
+            • years of experience
+            • primary technologies
+            • engineering strengths
+            • type of systems built
+            
+            If a JD is provided, slightly tailor the summary toward that role.
             
             ------------------------
             Experience vs Fresher Handling
             ------------------------
+            
             If the user has professional experience:
-            Generate bullet points for each experience entry.
+            Generate experience bullets normally.
             
-            If the user experience type is INTERNSHIP, treat it as professional work but slightly shorter and more concise.
-            Internships may contain 3–5 bullets instead of 7–8.
-            
-            If the user has NO experience:
+            If the user has no professional experience:
             Return an empty experiences array:
+            
             "experiences": []
             
-            Instead, focus on strengthening the projects section.
+            Instead strengthen the projects section to highlight engineering work.
             
-            Projects should highlight:
+            Projects should emphasize:
             • technologies used
             • system design
             • problem solved
-            • measurable or qualitative impact
+            • impact
             
             Projects should read like engineering achievements, not academic descriptions.
             
-            The "projects" field must ALWAYS be present in the JSON.
-            If the user provided projects, return them.
+            Always include the projects field.
+            
             If no projects exist return:
+            
             "projects": []
             
             ------------------------
             Output Rules
             ------------------------
-            Return ONLY valid JSON.
-            Do not include explanations, markdown, or extra text.
+            
+            Return STRICT valid JSON only.
+            Do not include explanations or markdown.
             
             Use EXACT field names:
+            
             summary
             experiences
             projects
-            Maintain the same companies and projects provided in the input.
             
             JSON format:
             
@@ -128,33 +139,24 @@ public class ResumeBuilderAiService {
                   "bullets": []
                 }
               ]
-            }
-            """;
+            }""";
 
-    public AiResumeResponse generateResumeContent(ResumeBuilderRequest request) throws Exception {
+    public AiResumeResponse generateResumeContent(ResumeBuilderRequest request) {
+        try {
+            String userPrompt = buildPrompt(request);
 
-        String prompt = buildPrompt(request);
+            String response = openAiClient.chat(
+                    "builder",
+                    MODEL,
+                    SYSTEM_PROMPT,
+                    userPrompt,
+                    0.4
+            );
+            return mapper.readValue(response, AiResumeResponse.class);
 
-        OpenAiRequest aiRequest = new OpenAiRequest(
-                "gpt-4o-mini",
-                List.of(new OpenAiMessage("system", SYSTEM_PROMPT),
-                        new OpenAiMessage("user", prompt)),
-                0.4
-        );
-
-        OpenAiResponse response = openAiWebClient.post()
-                .uri("/chat/completions")
-                .bodyValue(aiRequest)
-                .retrieve()
-                .bodyToMono(OpenAiResponse.class)
-                .block();
-
-        String content = response.getChoices()
-                .get(0)
-                .getMessage()
-                .getContent();
-
-        return mapper.readValue(content, AiResumeResponse.class);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to generate resume content", e);
+        }
     }
 
     private String buildPrompt(ResumeBuilderRequest request) {
