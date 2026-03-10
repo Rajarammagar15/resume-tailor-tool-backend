@@ -17,7 +17,7 @@ public class CorsConfig {
                     .allowedOrigins(
                             "http://localhost:3000",
                             "http://localhost:5173",
-                            "https://ats-resume-ai.vercel.app"
+                            "https://ats-resume-ai-tool.vercel.app"
                     )
                     .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                     .allowedHeaders("*")
