@@ -299,7 +299,9 @@ public abstract class BaseTemplateRenderer implements TemplateRenderer {
 
         if (educationList == null) return;
 
-        for (Education edu : educationList) {
+        for (int i = 0; i < educationList.size(); i++) {
+
+            Education edu = educationList.get(i);
 
             PdfPTable table = new PdfPTable(2);
             table.setWidthPercentage(100);
@@ -346,7 +348,11 @@ public abstract class BaseTemplateRenderer implements TemplateRenderer {
                     safeJoin(edu.getLocation(), "GPA: " + edu.getGrade()),
                     normalFont
             );
-            meta.setSpacingAfter(8f);
+            if (i < educationList.size() - 1) {
+                meta.setSpacingAfter(8f);
+            } else {
+                meta.setSpacingAfter(2f);
+            }
             document.add(meta);
         }
     }

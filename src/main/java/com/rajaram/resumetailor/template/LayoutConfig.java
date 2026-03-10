@@ -61,7 +61,7 @@ public class LayoutConfig {
 
     public static LayoutConfig corporate() {
         return new LayoutConfig(
-                12f,
+                10f,
                 6f,
                 4f,
                 8f,
@@ -77,7 +77,7 @@ public class LayoutConfig {
 
     public static LayoutConfig modern() {
         return new LayoutConfig(
-                14f,
+                10f,
                 6f,
                 4f,
                 8f,

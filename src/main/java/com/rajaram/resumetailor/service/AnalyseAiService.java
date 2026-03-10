@@ -2,6 +2,7 @@ package com.rajaram.resumetailor.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rajaram.resumetailor.model.AnalyzeResponse;
+import com.rajaram.resumetailor.model.SkillExtractionResponse;
 import com.rajaram.resumetailor.util.OpenAiClient;
 import com.rajaram.resumetailor.util.Util;
 import lombok.RequiredArgsConstructor;
@@ -20,89 +21,123 @@ public class AnalyseAiService {
     private final OpenAiClient openAiClient;
     private final Util util;
     private final ObjectMapper mapper;
+//    private static final String SKILL_EXTRACTOR_MODEL = "gpt-4o";
 
     @Value("${openai.model}")
     private String model;
 
-    private static final String SYSTEM_PROMPT = """
-            You are an ATS resume optimization expert.
+    private static final String SKILL_EXTRACTION_SYSTEM_PROMPT = """
+            You are a resume and job description skill extraction engine.
             
-            Your task is to analyze a resume against a Job Description and return a structured analysis.
+            Extract Skills from:
+            1. Job Description
+            2. Resume skills section
+            3. Entire resume including all summary, skills, experience, projects and certifications sections.
             
-            Important rules:
+            Return STRICT JSON:
+            {
+             "jdSkills": [],
+             "resumeSkillSectionSkills": [],
+             "wholeResumeSkills": []
+            }
             
-            • Do NOT fabricate technologies, achievements, or experience.
+            Rules:
+            - Normalize skill names (e.g. REST API → REST)
+            - Do not include explanations
+            - Only technologies, frameworks, tools, databases, programming languages, and architectural concepts
+            """;
+
+    private static final String OPTIMIZE_RESUME_SYSTEM_PROMPT = """
+            You are an ATS resume optimization engine.
+            
+            Goal:
+            Analyze a resume against a Job Description and return:
+            1. ATS match score (0–100)
+            2. Missing / weak skills suggestions
+            3. An optimized structured resume
+            
+            Core Rules:
+            • Do NOT fabricate technologies, experience, projects, or achievements.
             • Preserve all factual information from the resume.
-            • Improve wording and organization but do not invent new facts.
-            • Maintain the same order of experience and projects as provided.
+            • Improve wording, clarity, and ATS relevance only.
+            • Maintain the original order of experience and projects.
             
-            ------------------------
-            Experience Type Detection
-            ------------------------
+            Skill Integrity Rules:
+            You will receive:
+            - Extracted JD Skills
+            - Skills from the resume skills section
+            - All technologies detected in the resume
+            - Additional user provided skills (optional)
             
-            Every experience entry MUST include a "type" field.
+            Allowed technologies in the optimized resume must appear in:
+            1. resume skills section
+            2. technologies detected anywhere in the resume
+            3. additional user provided skills
+            
+            Technologies appearing only in the Job Description MUST NOT be added.
+            
+            Skills Optimization Rules:
+            • Prioritize technologies appearing in BOTH JD skills and resume technologies.
+            • Skills used in experience/projects may be added to the skills section if relevant.
+            • Do not include every technology mentioned in the resume.
+            • Do not remove valid resume skills unless clearly irrelevant to the Job Description.
+            
+            Experience Type Detection:
+            Each experience entry MUST include a "type" field.
             
             Allowed values:
             FULL_TIME
             INTERNSHIP
             
-            Determine the type using these rules:
+            Rules:
+            If role title contains Intern / Internship / Trainee → INTERNSHIP
+            If experience section implies internship → INTERNSHIP
+            Otherwise default → FULL_TIME
             
-            1. If the role title contains:
-            Intern, Internship, Trainee, Industrial Training
-            → type = "INTERNSHIP"
+            Resume Writing Rules:
+            Rewrite bullets using strong action verbs and clear impact.
             
-            2. If the resume section heading includes:
-            Internship, Internships, Internship Experience
-            → type = "INTERNSHIP"
+            Preferred structure:
+            Action + System/Feature + Technology + Impact
             
-            3. If the section heading includes:
-            Experience, Work Experience, Professional Experience
-            → type = "FULL_TIME"
+            Avoid phrases like:
+            worked on, responsible for, involved in.
             
-            4. If unclear, default to:
-            "type": "FULL_TIME"
+            Include metrics only if they exist in the resume.
             
-            Never omit the "type" field.
+            Bullet Limits (Strict):
+            Full-time roles → 6–8 bullets
+            Internships → 3–4 bullets
+            Projects → maximum 2 bullets
             
-            ------------------------
-            Additional Skills Handling
-            ------------------------
+            Summary Rules:
+            Rewrite summary in 4–5 concise lines highlighting:
+            • years of experience
+            • core technologies
+            • engineering strengths
+            • systems built
             
-            If additional skills are provided by the user but are not present in the resume:
+            Skills Section Categories:
+            languages
+            backend
+            databases
+            tools
+            frontend
+            cloud
+            concepts
             
-            • Treat them as confirmed skills from the user.
-            • They may improve ATS match score.
-            • Add them naturally to the skills section if relevant.
-            • Never remove valid skills already present in the resume.
-            • Only incorporate them into experience or project bullets if logically supported.
+            Do not duplicate skills across categories.
             
-            Never fabricate achievements just to include a skill.
-            
-            ------------------------
-            Analysis Tasks
-            ------------------------
-            
-            1. Extract required skills from the Job Description.
-            2. Extract skills from the Resume.
-            3. Compute a match score (0–100).
-            4. Provide actionable improvement suggestions.
-            5. Return the rewritten structured resume.
-            
-            ------------------------
-            Output Rules
-            ------------------------
-            
+            Output Requirements:
             Return STRICT valid JSON only.
             Do not include explanations or markdown.
             
-            JSON schema:
-            
+            JSON Schema:
             {
               "score": 0,
-              "extractedJdSkills": [],
-              "extractedResumeSkills": [],
-              "suggestions": [],
+              "extractedJdSkills": ["skill1","skill2"],
+              "extractedResumeSkills": ["skill1","skill2"],
+              "suggestions": ["suggestion1", "suggestion2"],
               "structuredResume": {
                 "header": {
                   "name": "",
@@ -147,49 +182,69 @@ public class AnalyseAiService {
                     "grade": ""
                   }
                 ],
-                "certifications": []
+                "certifications": ["cert1", "cert2"]
               }
-            }""";
+            }
+            """;
 
     public AnalyzeResponse rewriteResume(String jd,
                                          String resumeText,
                                          List<String> extraSkills) {
+
         try {
-            String userPrompt = buildUserPrompt(jd, resumeText, extraSkills);
+
+            // -------- Stage 1 --------
+            SkillExtractionResponse skills =
+                    extractSkills(jd, resumeText);
+
+            // -------- Stage 2 --------
+            String userPrompt =
+                    buildUserPrompt(jd, resumeText, extraSkills, skills);
 
             String response = openAiClient.chat(
-                    "analyzer",
+                    "resume-generator",
                     model,
-                    SYSTEM_PROMPT,
+                    OPTIMIZE_RESUME_SYSTEM_PROMPT,
                     userPrompt,
-                    0.3
+                    0.1
             );
+
             AnalyzeResponse analyzeResponse =
                     mapper.readValue(util.cleanJson(response), AnalyzeResponse.class);
-            return enrichScore(analyzeResponse);
+
+            return enrichScore(analyzeResponse, skills);
 
         } catch (Exception e) {
             throw new RuntimeException("Failed to analyze resume", e);
         }
     }
 
+    private SkillExtractionResponse extractSkills(String jd, String resumeText) throws Exception {
+        String prompt = """
+                Job Description:
+                %s
+                
+                Resume:
+                %s
+                """.formatted(jd, resumeText);
+
+        String response = openAiClient.chat(
+                "skill-extractor",
+                model,
+                SKILL_EXTRACTION_SYSTEM_PROMPT,
+                prompt,
+                0
+        );
+        return mapper.readValue(util.cleanJson(response), SkillExtractionResponse.class);
+    }
+
     private String buildUserPrompt(String jd,
                                    String resumeText,
-                                   List<String> extraSkills) {
-
-        String skillsSection = "";
-
+                                   List<String> extraSkills,
+                                   SkillExtractionResponse skills) {
+        String extra = "";
         if (extraSkills != null && !extraSkills.isEmpty()) {
-            skillsSection = """
-                    Additional Skills Provided by User:
-                    %s
-                    
-                    These skills are confirmed by the user but may not appear in the resume.
-                    If relevant, integrate them naturally into the resume sections such as:
-                    - skills
-                    - experience bullets
-                    - project bullets
-                    """.formatted(String.join(", ", extraSkills));
+            extra = "Additional Skills Provided By User: " + String.join(", ", extraSkills);
         }
 
         return """
@@ -199,24 +254,41 @@ public class AnalyseAiService {
                 Resume:
                 %s
                 
+                Extracted JD Skills:
                 %s
                 
-                Update the structured resume accordingly.
-                """.formatted(jd, resumeText, skillsSection);
+                Skills found in resume skills section:
+                %s
+                
+                All technologies detected in resume:
+                %s
+                
+                %s
+                
+                Use "All technologies detected in resume" as the candidate's full technical capability.
+                Use "Extracted JD Skills" to determine which technologies should be prioritized.
+                
+                Generate the optimized structured resume.
+                """.formatted(
+                jd,
+                resumeText,
+                skills.getJdSkills(),
+                skills.getResumeSkillSectionSkills(),
+                skills.getWholeResumeSkills(),
+                extra
+        );
     }
 
-    private AnalyzeResponse enrichScore(AnalyzeResponse analyzeResponse) {
+    private AnalyzeResponse enrichScore(AnalyzeResponse analyzeResponse, SkillExtractionResponse skills) {
 
-        Set<String> jdSkills = analyzeResponse.getExtractedJdSkills()
+        Set<String> jdSkills = skills.getJdSkills()
                 .stream()
                 .map(String::toLowerCase)
-                .map(String::trim)
                 .collect(Collectors.toSet());
 
-        Set<String> resumeSkills = analyzeResponse.getExtractedResumeSkills()
+        Set<String> resumeSkills = skills.getWholeResumeSkills()
                 .stream()
                 .map(String::toLowerCase)
-                .map(String::trim)
                 .collect(Collectors.toSet());
 
         Set<String> matched = new HashSet<>(jdSkills);
@@ -226,7 +298,6 @@ public class AnalyseAiService {
         missing.removeAll(resumeSkills);
 
         int keywordScore = 0;
-
         if (!jdSkills.isEmpty()) {
             keywordScore = (int) (((double) matched.size() / jdSkills.size()) * 100);
         }

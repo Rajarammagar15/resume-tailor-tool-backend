@@ -6,6 +6,7 @@ import com.rajaram.resumetailor.model.builder.AiResumeResponse;
 import com.rajaram.resumetailor.model.builder.ResumeBuilderRequest;
 import com.rajaram.resumetailor.util.OpenAiClient;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -14,7 +15,9 @@ public class ResumeBuilderAiService {
 
     private final OpenAiClient openAiClient;
     private final ObjectMapper mapper;
-    private static final String MODEL = "gpt-4o-mini";
+
+    @Value("${openai.model}")
+    private String model;
 
     private static final String SYSTEM_PROMPT = """
             You are an expert software engineering resume writer.
@@ -147,7 +150,7 @@ public class ResumeBuilderAiService {
 
             String response = openAiClient.chat(
                     "builder",
-                    MODEL,
+                    model,
                     SYSTEM_PROMPT,
                     userPrompt,
                     0.4
