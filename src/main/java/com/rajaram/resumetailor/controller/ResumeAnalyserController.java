@@ -59,7 +59,7 @@ public class ResumeAnalyserController {
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=tailored_resume.pdf")
+                        "inline; filename=tailored_resume.pdf")
                 .header(HttpHeaders.CACHE_CONTROL, "no-store")
                 .contentType(MediaType.APPLICATION_PDF)
                 .body(pdfBytes);
