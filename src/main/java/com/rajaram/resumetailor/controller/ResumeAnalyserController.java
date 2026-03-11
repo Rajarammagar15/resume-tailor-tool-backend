@@ -64,4 +64,27 @@ public class ResumeAnalyserController {
                 .contentType(MediaType.APPLICATION_PDF)
                 .body(pdfBytes);
     }
+
+
+    @PostMapping("/pdf/update")
+    public ResponseEntity<byte[]> generateUpdatedPdf(@RequestBody UpdateResumeRequest request) {
+
+        CachedAnalysis cached = cacheService.get(request.getAnalysisId());
+        if (cached == null) {
+            return ResponseEntity.notFound().build();
+        }
+        StructuredResume resume = cached.getStructuredResume();
+
+        // update skills
+        resume.setSkills(request.getSkills());
+        byte[] pdfBytes = pdfGenerationService.generatePdf(
+                resume,
+                request.getTemplate()
+        );
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=tailored_resume.pdf")
+                .header(HttpHeaders.CACHE_CONTROL, "no-store")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(pdfBytes);
+    }
 }
