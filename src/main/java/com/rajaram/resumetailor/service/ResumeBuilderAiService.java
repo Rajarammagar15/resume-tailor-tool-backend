@@ -5,9 +5,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rajaram.resumetailor.model.builder.AiResumeResponse;
 import com.rajaram.resumetailor.model.builder.ResumeBuilderRequest;
 import com.rajaram.resumetailor.util.OpenAiClient;
+import com.rajaram.resumetailor.util.Util;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -15,6 +18,7 @@ public class ResumeBuilderAiService {
 
     private final OpenAiClient openAiClient;
     private final ObjectMapper mapper;
+    private final Util util;
 
     @Value("${openai.model}")
     private String model;
@@ -32,7 +36,11 @@ public class ResumeBuilderAiService {
             Generate a strong generic resume using only the user's information.
             
             If Job Description (JD) is provided:
-            Optimize wording to better align with the job description.
+            1. Identify technologies and engineering concepts mentioned in the JD.
+            2. If those technologies also appear in the user's skills or experience,
+               emphasize them in the experience bullets and summary.
+            Do NOT introduce technologies that are not mentioned in the user's input.
+            
             Emphasize overlapping skills and technologies.
             Rephrase achievements to better match the JD while preserving technical accuracy.
             
@@ -64,7 +72,7 @@ public class ResumeBuilderAiService {
             Bullet count rules:
             
             Professional Experience:
-            7–8 bullets per role
+            8–9 bullets per role
             
             Internship Experience:
             3–5 bullets per role
@@ -72,11 +80,53 @@ public class ResumeBuilderAiService {
             Projects:
             Maximum 3 bullets
             
+            Bullet Quality Rules:
+            Each bullet must clearly describe:
+            • WHAT system or feature was built
+            • WHICH technologies were used
+            • WHY the work mattered to the system
+            
+            Avoid vague bullets such as:
+            "Developed APIs for backend services"
+            
+            Prefer:
+            "Developed REST APIs using Spring Boot to support digital wallet transaction processing services"
+            
+            Technology Mention Rules:
+            Whenever possible each bullet must include at least one of the following:
+            • programming language
+            • framework
+            • database
+            • cloud platform
+            • architecture concept
+            These technologies must come ONLY from the user's provided skills or experience description.
+            Never introduce technologies that are not present in the user input.
+            
+            Technology Distribution Rule:
+            Avoid repeating the same technology in every bullet.
+            Distribute technologies naturally across bullets such as:
+            • programming languages
+            • frameworks
+            • databases
+            • messaging systems
+            • cloud services
+            • architecture patterns
+            
+            System Context Rule:
+            Whenever possible describe the type of system built such as:
+            • payment systems
+            • transaction platforms
+            • backend services
+            • microservice architectures
+            • distributed systems
+            • enterprise APIs
+            • data pipelines
+            
             ------------------------
             Summary Rules
             ------------------------
             
-            Generate a concise professional summary (3–4 lines) highlighting:
+            Generate a concise professional summary (4–5 lines) highlighting:
             
             • years of experience
             • primary technologies
@@ -118,7 +168,8 @@ public class ResumeBuilderAiService {
             ------------------------
             
             Return STRICT valid JSON only.
-            Do not include explanations or markdown.
+            Do not wrap JSON in markdown.
+            Do not include explanations before or after the JSON.
             
             Use EXACT field names:
             
@@ -155,7 +206,7 @@ public class ResumeBuilderAiService {
                     userPrompt,
                     0.4
             );
-            return mapper.readValue(response, AiResumeResponse.class);
+            return mapper.readValue(util.cleanJson(response), AiResumeResponse.class);
 
         } catch (Exception e) {
             throw new RuntimeException("Failed to generate resume content", e);
@@ -174,11 +225,11 @@ public class ResumeBuilderAiService {
                 User Input
                 ------------------------
                 
-                User Skills:
+                Skills:
                 %s
                 
                 Years of Experience:
-                %f
+                %s
                 
                 Experience Description:
                 %s
@@ -189,7 +240,17 @@ public class ResumeBuilderAiService {
                 Job Description:
                 %s
                 
-                If Job Description is empty, treat it as NULL.
+                Instructions:
+                
+                Use ONLY the technologies present in the skills or experience description.
+                
+                If Job Description is NONE:
+                Generate a strong generic resume.
+                
+                If Job Description is provided:
+                Emphasize overlapping technologies between the JD and user skills.
+                
+                Focus on generating strong engineering bullets describing systems built.
                 """.formatted(
                 request.getSkills(),
                 request.getYearsOfExperience(),
@@ -198,4 +259,9 @@ public class ResumeBuilderAiService {
                 jd
         );
     }
+
+    private String safeJoin(List<String> list) {
+        return list == null || list.isEmpty() ? "" : String.join(", ", list);
+    }
+
 }

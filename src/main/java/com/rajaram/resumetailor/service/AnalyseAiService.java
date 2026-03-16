@@ -96,13 +96,10 @@ public class AnalyseAiService {
             
             Resume Writing Rules:
             Rewrite bullets using strong action verbs and clear impact.
-            
             Preferred structure:
             Action + System/Feature + Technology + Impact
-            
             Avoid phrases like:
             worked on, responsible for, involved in.
-            
             Include metrics only if they exist in the resume.
             
             Bullet Limits (Strict):
@@ -110,12 +107,103 @@ public class AnalyseAiService {
             Internships → 3–4 bullets
             Projects → maximum 2 bullets
             
+            Bullet Quality Rules:
+            Each bullet should describe:
+            • WHAT system or feature was built
+            • WHICH technology stack was used
+            • WHY it mattered to the system
+            
+            Avoid vague bullets such as:
+            "Developed APIs for backend services"
+            
+            Prefer:
+            "Developed REST APIs using Spring Boot to support wallet transaction processing services"
+            
+            Technology Distribution Rule:
+            Do not repeat the same technology in more than 2 bullets within the same experience. 
+            Distribute technologies naturally across bullets such as:
+            • programming languages
+            • frameworks
+            • databases
+            • messaging systems
+            • cloud services
+            • architecture patterns
+            
+            JD Alignment Rules (CRITICAL):
+            Experience bullets MUST emphasize technologies that overlap between:
+            • Extracted JD Skills
+            • Technologies found in the resume
+            
+            If a technology exists in BOTH:
+            - prioritize mentioning it in experience bullets.
+            
+            If a bullet describes work related to a JD skill but does not mention the technology explicitly,
+            rewrite the bullet to include the technology when it already exists somewhere in the resume.
+            
+            Example transformation:
+            Weak bullet:
+            "Developed backend APIs for payment processing"
+            Improved bullet:
+            "Developed backend REST APIs using Spring Boot and Hibernate for payment processing systems"
+            Goal:
+            Maximize ATS keyword matching WITHOUT adding technologies not present in the resume.
+            
+            Technology Mention Rules:
+            Whenever possible each experience bullet should include at least one of the following:
+            • programming language
+            • framework
+            • database
+            • cloud platform
+            • architecture concept
+            
+            These must come from:
+            - resume technologies
+            - additional user skills
+            Never invent technologies.
+            
+            Impact Enhancement Rules:
+            If the resume bullet lacks measurable metrics, improve impact using:
+            • scale of system
+            • type of system
+            • reliability
+            • performance
+            • automation
+            • maintainability
+            
+            Examples:
+            Instead of:
+            "Built APIs using Spring Boot"
+            Prefer:
+            "Built scalable REST APIs using Spring Boot for payment transaction processing"
+            
+            Do not fabricate numbers or metrics.
+            
+            Suggestion Rules:
+            Suggestions should explain how the candidate can improve ATS match.
+            Examples:
+            • Missing technologies from JD
+            • Weakly represented skills
+            • Experience bullets that could emphasize certain technologies
+            Do not suggest adding skills the candidate has never used.
+            
             Summary Rules:
             Rewrite summary in 4–5 concise lines highlighting:
             • years of experience
             • core technologies
             • engineering strengths
             • systems built
+            
+            System Context Rule:
+            Whenever possible describe the type of system the candidate worked on such as:
+            • payment systems
+            • transaction platforms
+            • microservice architectures
+            • distributed systems
+            • backend services
+            • data processing pipelines
+            • enterprise APIs
+            
+            This improves ATS relevance and recruiter clarity.
             
             Skills Section Categories:
             languages
@@ -130,7 +218,8 @@ public class AnalyseAiService {
             
             Output Requirements:
             Return STRICT valid JSON only.
-            Do not include explanations or markdown.
+            Do not wrap JSON in markdown.
+            Do not include text before or after the JSON.
             
             JSON Schema:
             {
@@ -206,7 +295,7 @@ public class AnalyseAiService {
                     model,
                     OPTIMIZE_RESUME_SYSTEM_PROMPT,
                     userPrompt,
-                    0.1
+                    0.3
             );
 
             AnalyzeResponse analyzeResponse =
@@ -265,16 +354,27 @@ public class AnalyseAiService {
                 
                 %s
                 
-                Use "All technologies detected in resume" as the candidate's full technical capability.
-                Use "Extracted JD Skills" to determine which technologies should be prioritized.
+                Resume Optimization Instructions:
+                
+                1. Identify overlap between Extracted JD Skills and resume technologies.
+                2. Ensure those overlapping technologies appear in:
+                   - Skills section
+                   - Experience bullets where relevant.
+                
+                3. Rewrite experience bullets so they clearly show:
+                   - technology used
+                   - system built
+                   - engineering contribution
+                
+                Goal: maximize ATS keyword relevance while preserving factual accuracy.
                 
                 Generate the optimized structured resume.
                 """.formatted(
                 jd,
                 resumeText,
-                skills.getJdSkills(),
-                skills.getResumeSkillSectionSkills(),
-                skills.getWholeResumeSkills(),
+                safeJoin(skills.getJdSkills()),
+                safeJoin(skills.getResumeSkillSectionSkills()),
+                safeJoin(skills.getWholeResumeSkills()),
                 extra
         );
     }
@@ -308,4 +408,13 @@ public class AnalyseAiService {
 
         return analyzeResponse;
     }
+
+    private String safeJoin(List<String> list) {
+        return list == null || list.isEmpty() ? "" : String.join(", ", list);
+    }
+
+//    private String truncate(String text, int maxChars) {
+//        if (text == null) return "";
+//        return text.length() > maxChars ? text.substring(0, maxChars) : text;
+//    }
 }
