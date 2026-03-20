@@ -17,15 +17,15 @@ public class ModernTemplateRenderer extends BaseTemplateRenderer {
         layout = LayoutConfig.modern();
     }
 
-    @Override
-    protected void addTopDecoration(Document document) throws Exception {
-
-        if (layout.showDivider) {
-            LineSeparator separator = new LineSeparator();
-            separator.setLineWidth(1.2f);
-            separator.setPercentage(100);
-            separator.setLineColor(layout.dividerColor);
-            document.add(separator);
-        }
-    }
+//    @Override
+//    protected void addTopDecoration(Document document) throws Exception {
+//
+//        if (layout.showDivider) {
+//            LineSeparator separator = new LineSeparator();
+//            separator.setLineWidth(1.2f);
+//            separator.setPercentage(100);
+//            separator.setLineColor(layout.dividerColor);
+//            document.add(separator);
+//        }
+//    }
 }

@@ -177,7 +177,7 @@ public abstract class BaseTemplateRenderer implements TemplateRenderer {
         Paragraph ruleParagraph = new Paragraph();
         ruleParagraph.setLeading(0f);
         ruleParagraph.setSpacingBefore(2.5f);
-        ruleParagraph.setSpacingAfter(layout.sectionSpacingAfter);
+        ruleParagraph.setSpacingAfter(layout.sectionSpacingAfter-2f);
 
         LineSeparator rule = new LineSeparator();
         rule.setLineWidth(0.5f);
@@ -225,14 +225,14 @@ public abstract class BaseTemplateRenderer implements TemplateRenderer {
         float labelColumnWidth = 80f;
 
         Paragraph labelPara = new Paragraph(title + ":", skillLabelFont);
-        labelPara.setSpacingAfter(0f);
-        labelPara.setSpacingBefore(layout.skillSpacing);
+        labelPara.setSpacingAfter(2f);
+        labelPara.setSpacingBefore(layout.skillSpacing-2f);
         document.add(labelPara);
 
         Paragraph valuePara = new Paragraph(String.join(", ", items), normalFont);
         valuePara.setIndentationLeft(labelColumnWidth);
-        valuePara.setSpacingBefore(-normalFont.getSize() - 5f);
-        valuePara.setSpacingAfter(layout.skillSpacing);
+        valuePara.setSpacingBefore(-normalFont.getSize() - 7f);
+        valuePara.setSpacingAfter(layout.skillSpacing+2f);
         document.add(valuePara);
     }
 
@@ -261,7 +261,7 @@ public abstract class BaseTemplateRenderer implements TemplateRenderer {
 
         if (exp == null) return;
 
-        Font experienceRoleFont = new Font(
+        Font experienceFont = new Font(
                 subHeaderFont.getFamily(),
                 subHeaderFont.getSize(),
                 Font.BOLD,
@@ -275,12 +275,13 @@ public abstract class BaseTemplateRenderer implements TemplateRenderer {
         );
 
         Paragraph roleLine = new Paragraph();
-        roleLine.setSpacingBefore(3f);
+        roleLine.setSpacingBefore(0f);
         roleLine.setSpacingAfter(0f);
-        roleLine.add(new Chunk(safe(exp.getRole()), experienceRoleFont));
+        roleLine.setIndentationRight(95f);
+        roleLine.add(new Chunk(safe(exp.getRole()), experienceFont));
 
         if (exp.getCompany() != null && !exp.getCompany().isBlank())
-            roleLine.add(new Chunk(" | " + exp.getCompany(), normalFont));
+            roleLine.add(new Chunk(" | " + exp.getCompany(), experienceFont));
 
         if (exp.getLocation() != null && !exp.getLocation().isBlank())
             roleLine.add(new Chunk(" | " + exp.getLocation(), normalFont));
@@ -325,8 +326,9 @@ public abstract class BaseTemplateRenderer implements TemplateRenderer {
 
             // Degree + Institution line (left)
             Paragraph degreeParagraph = new Paragraph();
-            degreeParagraph.setSpacingBefore(3f);
+            degreeParagraph.setSpacingBefore(0f);
             degreeParagraph.setSpacingAfter(0f);
+            degreeParagraph.setIndentationRight(95f);
             degreeParagraph.add(new Chunk(safeJoin(degreeLine, edu.getInstitution()), educationSubHeaderFont));
             document.add(degreeParagraph);
 

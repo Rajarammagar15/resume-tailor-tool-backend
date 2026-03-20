@@ -16,8 +16,8 @@ public class CorporateTemplateRenderer extends BaseTemplateRenderer {
         layout = LayoutConfig.corporate();
     }
 
-    @Override
-    protected void addTopDecoration(Document document) throws Exception {
-        addDivider(document);
-    }
+//    @Override
+//    protected void addTopDecoration(Document document) throws Exception {
+//        addDivider(document);
+//    }
 }
