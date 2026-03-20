@@ -1,21 +1,17 @@
 package com.rajaram.resumetailor.service;
 
-import com.lowagie.text.*;
-import com.lowagie.text.pdf.PdfPCell;
-import com.lowagie.text.pdf.PdfPTable;
+import com.lowagie.text.Document;
+import com.lowagie.text.PageSize;
 import com.lowagie.text.pdf.PdfWriter;
-import com.lowagie.text.pdf.draw.LineSeparator;
-import com.rajaram.resumetailor.model.*;
-
-import com.rajaram.resumetailor.model.Header;
+import com.rajaram.resumetailor.model.StructuredResume;
+import com.rajaram.resumetailor.model.TemplateType;
 import com.rajaram.resumetailor.template.TemplateFactory;
 import com.rajaram.resumetailor.template.TemplateRenderer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayOutputStream;
-import java.util.Arrays;
-import java.util.stream.Collectors;
+
 @Service
 @RequiredArgsConstructor
 public class PdfGenerationService {
@@ -26,7 +22,7 @@ public class PdfGenerationService {
 
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
 
-            Document document = new Document(PageSize.A4, 36, 36, 36, 36);
+            Document document = new Document(PageSize.A4, 40, 40, 40, 36);
             PdfWriter.getInstance(document, out);
             document.open();
 

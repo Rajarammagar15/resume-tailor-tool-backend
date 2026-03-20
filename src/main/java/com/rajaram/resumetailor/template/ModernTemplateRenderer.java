@@ -8,10 +8,11 @@ public class ModernTemplateRenderer extends BaseTemplateRenderer {
 
     @Override
     protected void configureFonts() {
-        nameFont = new Font(Font.HELVETICA, 18, Font.BOLD);
-        sectionFont = new Font(Font.HELVETICA, 13, Font.BOLD);
-        normalFont = new Font(Font.HELVETICA, 11);
-        boldFont = new Font(Font.HELVETICA, 11, Font.BOLD);
+        nameFont      = createFont(20, Font.BOLD);
+        sectionFont   = createFont(14, Font.BOLD);
+        subHeaderFont = createFont(12f, Font.BOLD);
+        normalFont    = createFont(10.5f, Font.NORMAL);
+        boldFont      = createFont(10.5f, Font.BOLD);
 
         layout = LayoutConfig.modern();
     }

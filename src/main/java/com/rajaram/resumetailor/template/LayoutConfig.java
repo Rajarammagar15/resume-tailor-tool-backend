@@ -45,12 +45,12 @@ public class LayoutConfig {
 
     public static LayoutConfig compact() {
         return new LayoutConfig(
-                4f,
-                2f,
+                8f,
+                3f,
                 1.5f,
                 4f,
                 10f,
-                2f,
+                -2f,
                 false,
                 new Color(40, 40, 40),
                 Color.BLACK,
@@ -62,11 +62,11 @@ public class LayoutConfig {
     public static LayoutConfig corporate() {
         return new LayoutConfig(
                 10f,
-                6f,
+                4f,
                 4f,
                 8f,
                 16f,
-                4f,
+                -2f,
                 true,
                 Color.BLACK,
                 Color.BLACK,
@@ -78,11 +78,11 @@ public class LayoutConfig {
     public static LayoutConfig modern() {
         return new LayoutConfig(
                 10f,
-                6f,
+                4f,
                 4f,
                 8f,
                 14f,
-                4f,
+                -2f,
                 true,
                 new Color(25, 60, 120),
                 new Color(25, 60, 120),

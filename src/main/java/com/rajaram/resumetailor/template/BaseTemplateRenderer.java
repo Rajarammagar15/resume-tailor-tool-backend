@@ -1,9 +1,9 @@
 package com.rajaram.resumetailor.template;
 
 import com.lowagie.text.*;
-import com.lowagie.text.pdf.PdfPCell;
-import com.lowagie.text.pdf.PdfPTable;
+import com.lowagie.text.pdf.BaseFont;
 import com.lowagie.text.pdf.draw.LineSeparator;
+
 import com.rajaram.resumetailor.model.*;
 import com.rajaram.resumetailor.model.Header;
 import com.rajaram.resumetailor.model.builder.ExperienceType;
@@ -15,6 +15,7 @@ public abstract class BaseTemplateRenderer implements TemplateRenderer {
 
     protected Font nameFont;
     protected Font sectionFont;
+    protected Font subHeaderFont;
     protected Font normalFont;
     protected Font boldFont;
 
@@ -123,10 +124,9 @@ public abstract class BaseTemplateRenderer implements TemplateRenderer {
 
     protected void addDivider(Document document) throws Exception {
         LineSeparator separator = new LineSeparator();
-        separator.setLineWidth(1f);
+        separator.setLineWidth(1.2f);
         separator.setPercentage(100);
         document.add(separator);
-        document.add(Chunk.NEWLINE);
     }
 
     protected void addHeader(Document document, Header header) throws Exception {
@@ -170,9 +170,22 @@ public abstract class BaseTemplateRenderer implements TemplateRenderer {
 
         Paragraph section = new Paragraph(title.toUpperCase(), styledSectionFont);
         section.setSpacingBefore(layout.sectionSpacingBefore);
-        section.setSpacingAfter(layout.sectionSpacingAfter);
-
+        section.setSpacingAfter(1f);
+        section.setLeading(sectionFont.getSize());
         document.add(section);
+
+        Paragraph ruleParagraph = new Paragraph();
+        ruleParagraph.setLeading(0f);
+        ruleParagraph.setSpacingBefore(2.5f);
+        ruleParagraph.setSpacingAfter(layout.sectionSpacingAfter);
+
+        LineSeparator rule = new LineSeparator();
+        rule.setLineWidth(0.5f);
+        rule.setPercentage(100);
+        rule.setLineColor(layout.sectionColor);
+        ruleParagraph.add(new Chunk(rule));
+
+        document.add(ruleParagraph);
     }
 
     protected void addParagraph(Document document, String text) throws Exception {
@@ -202,27 +215,25 @@ public abstract class BaseTemplateRenderer implements TemplateRenderer {
 
         if (items == null || items.isEmpty()) return;
 
-        PdfPTable table = new PdfPTable(2);
-        table.setWidthPercentage(100);
-
-        table.setWidths(new float[]{17, 83});
-
-        table.setSpacingAfter(layout.skillSpacing);
-
-        PdfPCell left = new PdfPCell(new Phrase(title + ":", boldFont));
-        left.setBorder(Rectangle.NO_BORDER);
-        left.setPadding(0);
-
-        PdfPCell right = new PdfPCell(
-                new Phrase(String.join(" | ", items), normalFont)
+        Font skillLabelFont = new Font(
+                subHeaderFont.getFamily(),
+                subHeaderFont.getSize(),
+                Font.BOLD,
+                layout.sectionColor
         );
-        right.setBorder(Rectangle.NO_BORDER);
-        right.setPadding(0);
 
-        table.addCell(left);
-        table.addCell(right);
+        float labelColumnWidth = 80f;
 
-        document.add(table);
+        Paragraph labelPara = new Paragraph(title + ":", skillLabelFont);
+        labelPara.setSpacingAfter(0f);
+        labelPara.setSpacingBefore(layout.skillSpacing);
+        document.add(labelPara);
+
+        Paragraph valuePara = new Paragraph(String.join(", ", items), normalFont);
+        valuePara.setIndentationLeft(labelColumnWidth);
+        valuePara.setSpacingBefore(-normalFont.getSize() - 5f);
+        valuePara.setSpacingAfter(layout.skillSpacing);
+        document.add(valuePara);
     }
 
     protected void addExperience(Document document,
@@ -250,24 +261,12 @@ public abstract class BaseTemplateRenderer implements TemplateRenderer {
 
         if (exp == null) return;
 
-        PdfPTable table = new PdfPTable(2);
-        table.setWidthPercentage(100);
-        table.setWidths(new float[]{70, 30});
-        table.setSpacingBefore(3f);
-        table.setSpacingAfter(1f);
-
-        Phrase leftPhrase = new Phrase();
-        leftPhrase.add(new Chunk(safe(exp.getRole()), boldFont));
-
-        if (exp.getCompany() != null && !exp.getCompany().isBlank()) {
-            leftPhrase.add(new Chunk(" | ", normalFont));
-            leftPhrase.add(new Chunk(exp.getCompany(), normalFont));
-        }
-
-        PdfPCell left = new PdfPCell(leftPhrase);
-        left.setBorder(Rectangle.NO_BORDER);
-        left.setPadding(0);
-
+        Font experienceRoleFont = new Font(
+                subHeaderFont.getFamily(),
+                subHeaderFont.getSize(),
+                Font.BOLD,
+                layout.sectionColor
+        );
         Font dateFont = new Font(
                 normalFont.getFamily(),
                 normalFont.getSize() - 1,
@@ -275,23 +274,24 @@ public abstract class BaseTemplateRenderer implements TemplateRenderer {
                 layout.dateColor
         );
 
-        PdfPCell right = new PdfPCell(
-                new Phrase(safe(exp.getDuration()), dateFont)
-        );
-        right.setHorizontalAlignment(Element.ALIGN_RIGHT);
-        right.setBorder(Rectangle.NO_BORDER);
-        right.setPadding(0);
+        Paragraph roleLine = new Paragraph();
+        roleLine.setSpacingBefore(3f);
+        roleLine.setSpacingAfter(0f);
+        roleLine.add(new Chunk(safe(exp.getRole()), experienceRoleFont));
 
-        table.addCell(left);
-        table.addCell(right);
+        if (exp.getCompany() != null && !exp.getCompany().isBlank())
+            roleLine.add(new Chunk(" | " + exp.getCompany(), normalFont));
 
-        document.add(table);
+        if (exp.getLocation() != null && !exp.getLocation().isBlank())
+            roleLine.add(new Chunk(" | " + exp.getLocation(), normalFont));
 
-        if (exp.getLocation() != null && !exp.getLocation().isBlank()) {
-            Paragraph location = new Paragraph(exp.getLocation(), normalFont);
-            location.setSpacingAfter(1);
-            document.add(location);
-        }
+        document.add(roleLine);
+
+        Paragraph dateLine = new Paragraph(safe(exp.getDuration()), dateFont);
+        dateLine.setAlignment(Element.ALIGN_RIGHT);
+        dateLine.setSpacingBefore(-normalFont.getSize() - 2.5f);
+        dateLine.setSpacingAfter(1f);
+        document.add(dateLine);
     }
 
     protected void addEducation(Document document,
@@ -303,28 +303,19 @@ public abstract class BaseTemplateRenderer implements TemplateRenderer {
 
             Education edu = educationList.get(i);
 
-            PdfPTable table = new PdfPTable(2);
-            table.setWidthPercentage(100);
-            table.setWidths(new float[]{70, 30});
-            table.setSpacingBefore(3f);
-            table.setSpacingAfter(1f);
-
-            Phrase leftPhrase = new Phrase();
             String degreeLine;
             if (edu.getSpecialization() != null && !edu.getSpecialization().isBlank()) {
                 degreeLine = edu.getDegree() + " in " + edu.getSpecialization();
             } else {
                 degreeLine = edu.getDegree();
             }
-            leftPhrase.add(new Chunk(
-                    safeJoin(degreeLine, edu.getInstitution()),
-                    boldFont
-            ));
 
-            PdfPCell left = new PdfPCell(leftPhrase);
-            left.setBorder(Rectangle.NO_BORDER);
-            left.setPadding(0);
-
+            Font educationSubHeaderFont = new Font(
+                    subHeaderFont.getFamily(),
+                    subHeaderFont.getSize(),
+                    Font.BOLD,
+                    layout.sectionColor
+            );
             Font dateFont = new Font(
                     normalFont.getFamily(),
                     normalFont.getSize() - 1,
@@ -332,27 +323,31 @@ public abstract class BaseTemplateRenderer implements TemplateRenderer {
                     layout.dateColor
             );
 
-            PdfPCell right = new PdfPCell(
-                    new Phrase(safe(edu.getDuration()), dateFont)
-            );
-            right.setHorizontalAlignment(Element.ALIGN_RIGHT);
-            right.setBorder(Rectangle.NO_BORDER);
-            right.setPadding(0);
+            // Degree + Institution line (left)
+            Paragraph degreeParagraph = new Paragraph();
+            degreeParagraph.setSpacingBefore(3f);
+            degreeParagraph.setSpacingAfter(0f);
+            degreeParagraph.add(new Chunk(safeJoin(degreeLine, edu.getInstitution()), educationSubHeaderFont));
+            document.add(degreeParagraph);
 
-            table.addCell(left);
-            table.addCell(right);
+            // Date pulled up to same visual line (right-aligned)
+            Paragraph dateLine = new Paragraph(safe(edu.getDuration()), dateFont);
+            dateLine.setAlignment(Element.ALIGN_RIGHT);
+            dateLine.setSpacingBefore(-normalFont.getSize() - 2.5f);
+            dateLine.setSpacingAfter(1f);
+            document.add(dateLine);
 
-            document.add(table);
+            // Location + GPA meta line
+            String gradeDisplay = edu.getGrade() == null ? null
+                    : (edu.getGrade().toLowerCase().contains("gpa")
+                    ? edu.getGrade()
+                    : "GPA: " + edu.getGrade());
 
             Paragraph meta = new Paragraph(
-                    safeJoin(edu.getLocation(), "GPA: " + edu.getGrade()),
+                    safeJoin(edu.getLocation(), gradeDisplay),
                     normalFont
             );
-            if (i < educationList.size() - 1) {
-                meta.setSpacingAfter(8f);
-            } else {
-                meta.setSpacingAfter(2f);
-            }
+            meta.setSpacingAfter(i < educationList.size() - 1 ? 8f : 2f);
             document.add(meta);
         }
     }
@@ -362,16 +357,23 @@ public abstract class BaseTemplateRenderer implements TemplateRenderer {
 
         if (projects == null || projects.isEmpty()) return;
 
+        int count = 0;
         for (Project project : projects) {
 
             if (project == null) continue;
 
-            Paragraph projectTitle = new Paragraph(
-                    safe(project.getName()),
-                    boldFont
+            Font projectTitleFont = new Font(
+                    subHeaderFont.getFamily(),
+                    subHeaderFont.getSize(),
+                    Font.BOLD,
+                    layout.sectionColor
             );
-            projectTitle.setSpacingBefore(-0.5f);
-            projectTitle.setSpacingAfter(1);
+            Paragraph projectTitle = new Paragraph(safe(project.getName()), projectTitleFont);
+
+            if (count > 0) projectTitle.setSpacingBefore(3f);
+            else projectTitle.setSpacingBefore(-1.5f);
+
+            projectTitle.setSpacingAfter(1f);
             document.add(projectTitle);
 
             if (project.getBullets() != null && !project.getBullets().isEmpty()) {
@@ -388,6 +390,8 @@ public abstract class BaseTemplateRenderer implements TemplateRenderer {
 
                 document.add(list);
             }
+
+            count++;
         }
     }
 
@@ -397,12 +401,13 @@ public abstract class BaseTemplateRenderer implements TemplateRenderer {
         if (certifications == null || certifications.isEmpty()) return;
 
         List list = new List(List.UNORDERED);
-        list.setIndentationLeft(16);
+        list.setIndentationLeft(layout.bulletIndent);
+        list.setListSymbol("• ");
 
         for (String cert : certifications) {
-            list.add(new ListItem(cert, normalFont));
+            String cleaned = cert.replaceAll("^[-–•\\s]+", "").trim();
+            list.add(new ListItem(cleaned, normalFont));
         }
-
         document.add(list);
     }
 
@@ -442,5 +447,24 @@ public abstract class BaseTemplateRenderer implements TemplateRenderer {
                 ResumeSection.EDUCATION,
                 ResumeSection.CERTIFICATIONS
         );
+    }
+
+    //helper method to setting fonts:
+    protected Font createFont(float size, int style) {
+        try {
+            String fontPath = style == Font.BOLD || style == Font.BOLDITALIC
+                    ? "/fonts/OpenSans-Bold.ttf"
+                    : "/fonts/OpenSans-Regular.ttf";
+
+            BaseFont bf = BaseFont.createFont(
+                    fontPath,
+                    BaseFont.WINANSI,
+                    BaseFont.EMBEDDED
+            );
+            return new Font(bf, size, style);
+        } catch (Exception e) {
+
+            return new Font(Font.HELVETICA, size, style);
+        }
     }
 }

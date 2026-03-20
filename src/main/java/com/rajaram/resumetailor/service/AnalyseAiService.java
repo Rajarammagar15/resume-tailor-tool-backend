@@ -102,8 +102,8 @@ public class AnalyseAiService {
             worked on, responsible for, involved in.
             Include metrics only if they exist in the resume.
             
-            Bullet Limits (Strict):
-            Full-time roles → 6–8 bullets
+            Bullet Limits (Strictly follow):
+            Full-time roles → 5–7 bullets
             Internships → 3–4 bullets
             Projects → maximum 2 bullets
             
@@ -162,7 +162,7 @@ public class AnalyseAiService {
             Never invent technologies.
             
             Impact Enhancement Rules:
-            If the resume bullet lacks measurable metrics, improve impact using:
+            If the resume experience bullet lacks measurable metrics, improve impact using:
             • scale of system
             • type of system
             • reliability
